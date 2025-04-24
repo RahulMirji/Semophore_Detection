@@ -57,7 +57,7 @@ This project uses **Jetson Nano**, **MediaPipe**, and **OpenCV** to recognize **
 ### 1. Install Requirements
 
 ```bash
-pip install opencv-python mediapipe flask numpy
+1.pip install opencv-python mediapipe flask numpy
 
 2.Start Detection
 python Navy.py
