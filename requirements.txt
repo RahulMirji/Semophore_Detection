@@ -1,0 +1,5 @@
+flask==2.2.5
+werkzeug==2.2.3
+opencv-python==4.7.0.72
+mediapipe==0.10.21
+numpy==1.24.3 

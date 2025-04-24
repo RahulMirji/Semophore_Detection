@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Semaphore Recognition</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 20px auto;
+            background-color: #000;
+            min-height: 480px;
+        }
+        #videoFeed {
+            width: 100%;
+            display: block;
+            background-color: #000;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .info-panel {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        .angle-display {
+            font-size: 1.2em;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .message-display {
+            font-size: 1.5em;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            min-height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Semaphore Recognition</h1>
+        
+        <div class="video-container">
+            <img id="videoFeed" src="" alt="Video feed">
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">Start Camera</button>
+            <button id="stopBtn" disabled>Stop Camera</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="info-panel">
+            <div class="angle-display">
+                Left Angle: <span id="leftAngle">0</span>°
+            </div>
+            <div class="angle-display">
+                Right Angle: <span id="rightAngle">0</span>°
+            </div>
+            <div class="message-display">
+                <strong>Decoded Message:</strong>
+                <div id="decodedMessage"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videoFeed = document.getElementById('videoFeed');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const leftAngle = document.getElementById('leftAngle');
+        const rightAngle = document.getElementById('rightAngle');
+        const decodedMessage = document.getElementById('decodedMessage');
+        
+        let isStreaming = false;
+        
+        function updateStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.className = isError ? 'error' : 'success';
+            console.log(message);
+        }
+        
+        function startCamera() {
+            if (isStreaming) return;
+            
+            updateStatus('Starting camera...');
+            fetch('/start')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'started') {
+                        isStreaming = true;
+                        startBtn.disabled = true;
+                        stopBtn.disabled = false;
+                        videoFeed.src = '/video_feed?' + new Date().getTime();
+                        updateStatus('Camera started successfully');
+                        
+                        // Start updating angles and message
+                        startUpdating();
+                    } else {
+                        updateStatus('Failed to start camera: ' + data.message, true);
+                    }
+                })
+                .catch(error => {
+                    updateStatus('Error starting camera: ' + error, true);
+                });
+        }
+        
+        function stopCamera() {
+            if (!isStreaming) return;
+            
+            updateStatus('Stopping camera...');
+            fetch('/stop')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'stopped') {
+                        isStreaming = false;
+                        startBtn.disabled = false;
+                        stopBtn.disabled = true;
+                        videoFeed.src = '';
+                        updateStatus('Camera stopped successfully');
+                        stopUpdating();
+                    } else {
+                        updateStatus('Failed to stop camera: ' + data.message, true);
+                    }
+                })
+                .catch(error => {
+                    updateStatus('Error stopping camera: ' + error, true);
+                });
+        }
+        
+        let updateInterval;
+        
+        function startUpdating() {
+            updateInterval = setInterval(updateData, 100);
+        }
+        
+        function stopUpdating() {
+            clearInterval(updateInterval);
+        }
+        
+        function updateData() {
+            if (!isStreaming) return;
+            
+            fetch('/get_data')
+                .then(response => response.json())
+                .then(data => {
+                    leftAngle.textContent = data.angles.left;
+                    rightAngle.textContent = data.angles.right;
+                    decodedMessage.textContent = data.message;
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+        
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+    </script>
+</body>
+</html> 
